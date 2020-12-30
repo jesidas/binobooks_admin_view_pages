@@ -32,7 +32,7 @@
       </el-row>
       <!-- user table -->
       <el-table :data="userList" stripe border>
-        <el-table-column lable="nihao" type="index"></el-table-column>
+        <el-table-column lable="#" type="index"></el-table-column>
         <el-table-column label="Name" prop="username"></el-table-column>
         <el-table-column label="Email" prop="email"></el-table-column>
         <el-table-column label="Mobile" prop="mobile"></el-table-column>
@@ -72,6 +72,7 @@
                 type="warning"
                 icon="el-icon-setting"
                 size="mini"
+                @click="assignRole(scope.row)"
               ></el-button>
             </el-tooltip>
           </template>
@@ -148,6 +149,36 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="editDialogVisible = false">CANCEL</el-button>
         <el-button type="primary" @click="editUserInfo">OK</el-button>
+      </span>
+    </el-dialog>
+    <!-- Assign role dialog -->
+    <el-dialog
+      title="Assign User"
+      :visible.sync="assignRoleDialogVisible"
+      @close="assignRoleDialogVisibleClosed"
+      width="50%"
+    >
+      <div>
+        <p>User: {{ userInfo.username }}</p>
+        <p>Role: {{ userInfo.role_name }}</p>
+        <p>
+          Assign Role:
+          <el-select v-model="selectedRoleId" placeholder="-- SELECT --">
+            <el-option
+              v-for="item in rolesList"
+              :key="item.id"
+              :label="item.roleName"
+              :value="item.id"
+            >
+            </el-option>
+          </el-select>
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="assignRoleDialogVisible = false">CANCEL</el-button>
+        <el-button type="primary" @click="saveRoleInfo"
+          >OK</el-button
+        >
       </span>
     </el-dialog>
   </div>
@@ -239,6 +270,14 @@ export default {
           { validator: checkMobile, trigger: 'blur' },
         ],
       },
+      // control assign role dialog
+      assignRoleDialogVisible: false,
+      // user watting to be assigned a role
+      userInfo: {},
+      // role list
+      rolesList: [],
+      // selected Role id
+      selectedRoleId: ''
     }
   },
   created() {
@@ -253,7 +292,6 @@ export default {
         return this.$message.error('Fail to get user list')
       this.userList = res.data.users
       this.total = res.data.total
-      console.log(res)
     },
     // listen page size change
     handleSizeChange(newSize) {
@@ -324,19 +362,54 @@ export default {
       })
     },
     // Remove user from list by id
-    async removeUserById(id){
-      const confirmResult = await this.$confirm('The operation will delete the user forever. Are you sure you want to it?', 'Warning',{
-        confirmButtonText: 'Confirm',
-        cancelButtonText: 'Cancel',
-        type: 'warning'
-      }).catch(err => err)
-      if(confirmResult === 'cancel'){
+    async removeUserById(id) {
+      const confirmResult = await this.$confirm(
+        'The operation will delete the user forever. Are you sure you want to it?',
+        'Warning',
+        {
+          confirmButtonText: 'Confirm',
+          cancelButtonText: 'Cancel',
+          type: 'warning',
+        }
+      ).catch((err) => err)
+      if (confirmResult === 'cancel') {
         return this.$message.info('Operation is canceled')
       }
-      const {data: res} = await this.$http.delete( `users/${id}`)
-      if(res.meta.status !== 200){ return this.$message.error('Fail to delete user')}
+      const { data: res } = await this.$http.delete(`users/${id}`)
+      if (res.meta.status !== 200) {
+        return this.$message.error('Fail to delete user')
+      }
       this.$message.success('Successfully delete user!')
       this.getUserList()
+    },
+    // display assign role dialog
+    async assignRole(userInfo) {
+      this.userInfo = userInfo
+      // before dialog is visible, get all role list
+      const { data: res } = await this.$http.get('roles')
+      if (res.meta.status !== 200) {
+        return this.$message.error('Fail to get role list')
+      }
+      this.rolesList = res.data
+      this.assignRoleDialogVisible = true
+      
+    },
+    // submit selected role info
+    async saveRoleInfo(){
+      if(!this.selectedRoleId){return this.$message.error('Please select a role')}
+      const{data: res} = await this.$http.put(`users/${this.userInfo.id}/role`, {
+        rid: this.selectedRoleId
+      })
+      if (res.meta.status !== 200) {
+        return this.$message.error('Fail to save the newrole')
+      }
+      this.$message.success('Successfully save the role')
+      this.getUserList()
+      this.assignRoleDialogVisible = false
+    },
+    assignRoleDialogVisibleClosed(){
+      this.selectedRoleId = ''
+      this.userInfo = ''
     }
   },
 }
