@@ -18,7 +18,7 @@
           background-color="#333744"
           text-color="#fff"
           active-text-color="#409eff"
-          :unique-opened="true"
+          unique-opened
           :collapse="isCollapse"
           :collapse-transition="false"
           :router="true"
