@@ -103,7 +103,15 @@
           <el-input v-model="addForm.book_name"></el-input>
         </el-form-item>
         <el-form-item label="category" prop="book_category">
-          <el-input v-model="addForm.book_category"></el-input>
+          <el-select v-model="selectedNewBookCateId" placeholder="Select...">
+            <el-option
+              v-for="item in catesList"
+              :key="item.category_id"
+              :label="item.category_name"
+              :value="item.category_id"
+            >
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="price" prop="book_price">
           <el-input v-model="addForm.book_price"></el-input>
@@ -122,6 +130,18 @@
             v-model="addForm.book_des"
           >
           </el-input>
+        </el-form-item>
+        <el-form-item label="coverImg" prop="coverImg">
+          <el-upload
+            action="http://localhost:8888/up/files"         
+            :limit="1"
+            :on-success="handleSuccess"
+          >
+            <el-button size="small" type="primary">点击上传</el-button>
+            <div slot="tip" class="el-upload__tip">
+              只能上传jpg/png文件，且不超过500kb
+            </div>
+          </el-upload>
         </el-form-item>
       </el-form>
       <!-- dialog footer -->
@@ -144,17 +164,18 @@ export default {
         pagesize: 2,
       },
       goodsList: [],
-      value: true,
+      catesList: [],
       // total page num
       total: 0,
       addDialogVisible: false,
       // add book form
       addForm: {
         book_name: '',
-        book_category: '',
+        book_category: 0,
         book_price: '',
         book_des: '',
         sale: true,
+        url: ""
       },
       addFormRules: {
         book_name: [
@@ -173,21 +194,30 @@ export default {
         ],
       },
       textarea: '',
+      selectedNewBookCateId: '',
     }
   },
   created() {
     this.getGoodsList()
+    this.getCatesList()
   },
   methods: {
     async getGoodsList() {
       const res = await this.$http.get(
-        `/findAll/${this.queryInfo.pagenum}/${this.queryInfo.pagesize}`
+        `/book/findAll/${this.queryInfo.pagenum}/${this.queryInfo.pagesize}`
       )
       if (res.status !== 200)
         return this.$message.error('Fail to get user list')
-      console.log(res.data)
       this.goodsList = res.data.content
       this.total = res.data.totalElements
+    },
+    async getCatesList() {
+      const res = await this.$http.get('/category/categories')
+      console.log(res)
+      if (res.status !== 200)
+        return this.$message.error('Fail to get category list')
+
+      this.catesList = res.data
     },
     // listen page size change
     handleSizeChange(newSize) {
@@ -209,8 +239,9 @@ export default {
     addBook() {
       this.$refs.addFormRef.validate(async (valid) => {
         if (!valid) return
-        const res = await this.$http.post('/save', this.addForm)
-        console.log(res)
+        this.addForm.book_category = this.selectedNewBookCateId
+        const res = await this.$http.post('/book/save', this.addForm)
+        console.log(this.addForm)
         if (res.status !== 200)
           return this.$message.error('Fail to add the book')
         this.$message.success('Successfully add the book')
@@ -227,7 +258,16 @@ export default {
     // listen to event of closing add dialog
     addDialogClosed() {
       this.$refs.addFormRef.resetFields()
+      this.selectedNewBookCateId = ''
     },
+    printSomething(file, fileList){
+      console.log(file)
+    },
+    // handle when successfully upload cover image
+    async handleSuccess(info){
+     console.log(info)
+     this.addForm.url = info
+    }
   },
 }
 </script>
