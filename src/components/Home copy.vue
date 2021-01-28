@@ -24,18 +24,33 @@
           :router="true"
           :default-active="activePath"
         >
-          <el-menu-item
-            :index="'/goods'"
-            :key="1"
-            @click="saveNavState('/goods')"
+          <!-- first level menu -->
+          <el-submenu
+            :index="item.id + ''"
+            v-for="item in menuList"
+            :key="item.id"
           >
             <template slot="title">
               <!-- icon -->
-              <i class="el-icon-menu"></i>
+              <i :class="iconsObj[item.id]"></i>
               <!-- text -->
-              <span>goods management</span>
+              <span>{{ item.authName }}</span>
             </template>
-          </el-menu-item>
+            <!-- Item below first level menu -->
+            <el-menu-item
+              :index="'/' + subItem.path"
+              v-for="subItem in item.children"
+              :key="subItem.id"
+              @click="saveNavState('/' + subItem.path)"
+            >
+              <template slot="title">
+                <!-- icon -->
+                <i class="el-icon-menu"></i>
+                <!-- text -->
+                <span>{{ subItem.authName }}</span>
+              </template>
+            </el-menu-item>
+          </el-submenu>
         </el-menu>
       </el-aside>
       <!-- right-hand content -->
@@ -61,7 +76,7 @@ export default {
       },
       isCollapse: false,
       // actived path
-      activePath: '',
+      activePath: ''
     }
   },
   created() {
@@ -84,10 +99,10 @@ export default {
     toggleCollapse() {
       this.isCollapse = !this.isCollapse
     },
-    saveNavState(activePath) {
+    saveNavState (activePath) {
       window.sessionStorage.setItem('activePath', activePath)
       this.activePath = activePath
-    },
+    }
   },
 }
 </script>

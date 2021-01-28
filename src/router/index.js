@@ -8,13 +8,15 @@ import Rights from '../components/premission/Rights.vue'
 import Roles from '../components/premission/Roles.vue'
 import Cate from '../components/goods/Cate.vue'
 import Good from '../components/goods/Good.vue'
+import GoodContent from '../components/goods/GoodContent.vue'
+
 
 Vue.use(VueRouter)
 
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: Login },
-  { path: '/goods', component: Good},
+  
   {
     path: '/home',
     component: Home,
@@ -25,7 +27,8 @@ const routes = [
       { path: '/rights', component: Rights },
       { path: '/roles', component: Roles},
       { path: '/categories', component: Cate},
-      
+      { path: '/goods', component: Good},
+      { path: '/goodContent', name: 'goodContent', component: GoodContent},
     ]
   }
 ]
