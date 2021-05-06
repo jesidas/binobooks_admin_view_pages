@@ -10,14 +10,14 @@
         <!-- user name -->
         <el-form-item prop="username">
           <el-input
-            v-model="loginForm.username"
+            v-model="loginForm.name"
             prefix-icon="el-icon-user"
           ></el-input>
         </el-form-item>
         <!-- password -->
         <el-form-item prop="password">
           <el-input
-            v-model="loginForm.password"
+            v-model="loginForm.pwd"
             prefix-icon="el-icon-lock"
             type="password"
           ></el-input>
@@ -38,18 +38,19 @@ export default {
     return {
     // data binding
       loginForm: {
-        username: 'admin',
-        password: '123456'
+        name: 'root',
+        pwd: '123456',
+        perms:"user-add"
       },
       // data validation
       loginFormRules: {
-        username: [
+        name: [
           { required: true, message: 'Please input username', trigger: 'blur' },
           { min: 3, max: 10, message: 'length between 3 to 10 chars', trigger: 'blur' }
         ],
-        password: [
+        pwd: [
           { required: true, message: 'Please input password', trigger: 'blur' },
-          { min: 6, max: 20, message: 'length between 6 to 20 chars', trigger: 'blur' }
+          { min: 3, max: 20, message: 'length between 3 to 20 chars', trigger: 'blur' }
         ]
       }
     }
@@ -62,13 +63,17 @@ export default {
     login () {
       this.$refs.loginFormRef.validate(async valid => {
         if (!valid) return
-        const { data: res } = await this.$http.post('login', this.loginForm)
-        if (res.meta.status !== 200) return this.$message.error('Fail to login')
+        const res  = await this.$http.post('user/login', this.loginForm)
+        if (!res.data.token) return this.$message.error('Fail to login')
         this.$message.success('Successfully login')
-        // 1.sotre token into sessionStorage
-        window.sessionStorage.setItem('token', res.data.token)
-        // 2. programmically jump to home page
-        this.$router.push('/home')
+        console.log(res)
+        //1.sotre token into sessionStorage
+        if(res.data.token){
+           window.sessionStorage.setItem('token', res.data.token)
+          // //2. programmically jump to home page
+          this.$router.push('/home')
+        }
+       
       })
     }
   }

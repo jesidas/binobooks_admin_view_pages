@@ -33,7 +33,32 @@
               <!-- icon -->
               <i class="el-icon-menu"></i>
               <!-- text -->
-              <span>goods management</span>
+              <span>Goods Management</span>
+            </template>
+          </el-menu-item>
+          <el-menu-item
+            :index="'/category'"
+            :key="2"
+            @click="saveNavState('/category')"
+          >
+            <template slot="title">
+              <!-- icon -->
+              <i class="el-icon-menu"></i>
+              <!-- text -->
+              <span>Categories Management</span>
+            </template>
+          </el-menu-item>
+          <!-- element category management -->
+          <el-menu-item
+            :index="'/elementCategory'"
+            :key="3"
+            @click="saveNavState('/elementCategory')"
+          >
+            <template slot="title">
+              <!-- icon -->
+              <i class="el-icon-menu"></i>
+              <!-- text -->
+              <span>Element Categories</span>
             </template>
           </el-menu-item>
         </el-menu>
@@ -65,7 +90,7 @@ export default {
     }
   },
   created() {
-    this.getMenuList()
+    // this.getMenuList()
     this.activePath = window.sessionStorage.getItem('activePath')
   },
   methods: {
@@ -73,13 +98,7 @@ export default {
       window.sessionStorage.clear()
       this.$router.push('/login')
     },
-    async getMenuList() {
-      // GET method to get menu list
-      const { data: res } = await this.$http.get('menus')
-      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
-      this.menuList = res.data
-      console.log(res)
-    },
+
     // collapse side bar
     toggleCollapse() {
       this.isCollapse = !this.isCollapse

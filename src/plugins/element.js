@@ -29,10 +29,17 @@ import {
   Tree,
   Select,
   Option,
-  Upload
+  Upload,
+  Radio,
+  RadioGroup,
+  Cascader,
+  Collapse,
+  CollapseItem,
 } from 'element-ui'
 import lang from 'element-ui/lib/locale/lang/en'
 import locale from 'element-ui/lib/locale'
+
+
 
 locale.use(lang)
 
@@ -64,5 +71,11 @@ Vue.use(Tree)
 Vue.use(Select)
 Vue.use(Option)
 Vue.use(Upload)
+Vue.use(Radio)
+Vue.use(RadioGroup)
+Vue.use(Cascader)
+Vue.use(Collapse)
+Vue.use(CollapseItem)
 Vue.prototype.$message = Message
 Vue.prototype.$confirm = MessageBox.confirm
+

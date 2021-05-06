@@ -1,17 +1,19 @@
 <template>
   <div>
     <el-breadcrumb separator=">">
-        <el-breadcrumb-item :to="{ path: '/welcome' }">welcome</el-breadcrumb-item>
-        <el-breadcrumb-item><a href="/goods">Goods</a></el-breadcrumb-item>
-      </el-breadcrumb>
+      <el-breadcrumb-item :to="{ path: '/welcome' }"
+        >welcome</el-breadcrumb-item
+      >
+      <el-breadcrumb-item><a href="/goods">Goods</a></el-breadcrumb-item>
+    </el-breadcrumb>
     <el-card>
       <!-- breadcrumb -->
-      
+
       <!-- search and add book  -->
       <el-row :gutter="20">
         <el-col :span="9">
           <el-input
-            placeholder="请输入内容"
+            placeholder="search by name.."
             v-model="queryInfo.query"
             clearable
             @clear="getGoodsList"
@@ -19,7 +21,7 @@
             <el-button
               slot="append"
               icon="el-icon-search"
-              @click="getGoodsList"
+              @click="findByName"
             ></el-button>
           </el-input>
         </el-col>
@@ -38,15 +40,15 @@
           prop="book_category"
         ></el-table-column>
         <el-table-column label="Price" prop="book_price"></el-table-column>
-        <el-table-column label="State">
+        <!-- <el-table-column label="State" width="100rpx">
           <template v-slot="scope">
             <el-switch
               v-model="scope.row.sale"
               @change="bookStateChanged(scope.row)"
             ></el-switch>
           </template>
-        </el-table-column>
-        <el-table-column label="Operation" width="180px">
+        </el-table-column> -->
+        <el-table-column label="Operation" width="250rpx">
           <template v-slot="scope">
             <!-- modify btn -->
             <el-button
@@ -55,14 +57,21 @@
               size="mini"
               @click="showEditDialog(scope.row)"
             ></el-button>
-            <!-- delete btn -->
-            <el-button
-              type="danger"
-              icon="el-icon-delete"
-              @click="removeUserById(scope.row.id)"
-              size="mini"
-            ></el-button>
-            <!-- assign role btn -->
+            <!-- set character of the book -->
+            <el-tooltip
+              effect="dark"
+              content="character setting"
+              placement="top"
+              :enterable="false"
+            >
+              <el-button
+                type="success"
+                icon="el-icon-user"
+                size="mini"
+                @click="setCharacter(scope.row)"
+              ></el-button>
+            </el-tooltip>
+            <!-- set page content -->
             <el-tooltip
               effect="dark"
               content="content setting"
@@ -76,6 +85,13 @@
                 @click="setContent(scope.row)"
               ></el-button>
             </el-tooltip>
+            <!-- delete btn -->
+            <el-button
+              type="danger"
+              icon="el-icon-delete"
+              @click="removeBookById(scope)"
+              size="mini"
+            ></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -83,9 +99,9 @@
       <el-pagination
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        :current-page="queryInfo.pagenum"
-        :page-sizes="[2, 4, 8, 16]"
-        :page-size="queryInfo.pagesize"
+        :current-page="queryInfo.pageNum"
+        :page-sizes="[5, 10, 20, 30]"
+        :page-size="queryInfo.pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="total"
       >
@@ -93,7 +109,7 @@
     </el-card>
     <!-- add book dialog -->
     <el-dialog
-      title="ADD USER"
+      title="ADD A Book"
       :visible.sync="addDialogVisible"
       @close="addDialogClosed"
       width="50%"
@@ -136,14 +152,16 @@
         </el-form-item>
         <el-form-item label="coverImg" prop="coverImg">
           <el-upload
-            action="http://localhost:8888/up/files"
+            action="http://159.75.20.131:8888/up/files"
+            list-type="picture-card"
+            :data="{ bucket: `${addForm.book_name}`, folder: `bookcover` }"
+            :class="{ disabled: uploadDisabled }"
             :limit="1"
             :on-success="handleAddFormUploadSuccess"
+            :on-remove="handleAddFormUploadRemove"
+            :on-change="handleAddFormUploadChange"
           >
-            <el-button size="small" type="primary">点击上传</el-button>
-            <div slot="tip" class="el-upload__tip">
-              只能上传jpg/png文件，且不超过500kb
-            </div>
+            <el-button size="small" type="primary">UPLOAD</el-button>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -188,14 +206,15 @@
         </el-form-item>
         <el-form-item>
           <el-upload
-            action="http://localhost:8888/up/files"
+            action="http://159.75.20.131:8888/up/files"
             list-type="picture-card"
+            :data="{ bucket: `${editForm.book_name}`, folder: `bookcover` }"
             :class="{ disabled: uploadDisabled }"
             :limit="1"
             :file-list="uploadedList"
             :on-success="handleEditFormUploadSuccess"
-            :on-change="handleUploadChange"
-            :on-remove="handleUploadRemove"
+            :on-change="handleEditFormUploadChange"
+            :on-remove="handleEditFormUploadRemove"
           >
             <i class="el-icon-plus"></i>
           </el-upload>
@@ -225,8 +244,8 @@ export default {
     return {
       queryInfo: {
         query: '',
-        pagenum: 1,
-        pagesize: 2,
+        pageNum: 1,
+        pageSize: 5,
       },
       goodsList: [],
       catesList: [],
@@ -284,42 +303,87 @@ export default {
       uploadDisabled: false,
     }
   },
-  created() {
+  async created() {
+    await this.getCatesList()
     this.getGoodsList()
-    this.getCatesList()
   },
   methods: {
     async getGoodsList() {
       const res = await this.$http.get(
-        `/book/findAll/${this.queryInfo.pagenum}/${this.queryInfo.pagesize}`
+        `/book/findAll/${this.queryInfo.pageNum}/${this.queryInfo.pageSize}`
       )
       if (res.status !== 200)
-        return this.$message.error('Fail to get user list')
-      this.goodsList = res.data.content
-      this.total = res.data.totalElements
+        return this.$message.error('Fail to get goods list')
+      this.goodsList = res.data.list
+      // this.goodsList = res.data.content
+      this.total = res.data.total
+      this.goodsList.forEach((element) => {
+        element.book_category = this.getCateById(element.book_category)
+      })
+      console.log(this.goodsList)
     },
+
     async getCatesList() {
       const res = await this.$http.get('/category/categories')
       if (res.status !== 200)
         return this.$message.error('Fail to get category list')
-
       this.catesList = res.data
+    },
+
+    async findByName() {
+      const queryWords = this.queryInfo.query
+      if (queryWords) {
+        const res = await this.$http.get(`/book/findByName/${queryWords}`)
+        if (res.status !== 200)
+          return this.$message.error('Fail to get goods list')
+        console.log(res.data)
+        this.goodsList = res.data
+
+        this.goodsList.forEach((element) => {
+          element.book_category = this.getCateById(element.book_category)
+        })
+      } else {
+        this.getGoodsList()
+      }
+    },
+
+    getCateById(id) {
+      let name
+      this.catesList.forEach((element) => {
+        if (element.category_id === id) {
+          name = element.category_name
+        }
+      })
+      return name
+    },
+
+    // delete image from the MINIO
+    async DeletImgFromMinio(theForm) {
+      let url = theForm.url
+      let urlTokens = url.split('/').splice(3)
+      let bucket = urlTokens[0]
+      urlTokens = urlTokens.splice(1)
+      let file = urlTokens.join('/')
+      const uploadBody = { bucketName: bucket, fileName: file }
+      const res = await this.$http.post('/up/deleteFile', uploadBody)
+      // console.log(res);
+      if (res.status !== 200)
+        return this.$message.error('Fail to delete the image')
     },
     // listen page size change
     handleSizeChange(newSize) {
-      this.queryInfo.pagesize = newSize
+      this.queryInfo.pageSize = newSize
       this.getGoodsList()
     },
     // lisent page number change
     handleCurrentChange(newPage) {
-      this.queryInfo.pagenum = newPage
+      this.queryInfo.pageNum = newPage
       this.getGoodsList()
     },
     async bookStateChanged(info) {
-      info.sale = !info.sale
+      //info.sale = !info.sale
       console.log(info)
-      const res = await this.$http.put('/changeState', { params: info })
-      console.log(res)
+      const res = await this.$http.put('/book/changeState/' + info.book_id)
     },
     // send request to add a book
     addBook() {
@@ -336,6 +400,35 @@ export default {
         this.getGoodsList()
       })
     },
+    async removeBookById(scope) {
+      this.$confirm(
+        'The opeartion will delete all element in the book as well, are you sure you want to it?',
+        'Warning',
+        {
+          confirmButtonText: 'Confirm',
+          cancelButtonText: 'Cancel',
+          type: 'warning',
+        }
+      )
+        .then(async () => {
+          const index = scope.$index
+          this.goodsList.splice(index, 1)
+          const res = await this.$http.delete(
+            'book/deleteById/' + scope.row.book_id
+          )
+          const res2 = await this.$http.delete(
+            'up/deleteBucket/' + scope.row.book_name
+          )
+          if (res.status !== 200 || res2.status !== 200) {
+            return this.$message.error('Fail to delete the book')
+          }
+          this.getGoodsList()
+          this.$message.success('Successfully Deleted!')
+        })
+        .catch(() => {
+          this.$message.info('Opeartion canceled!')
+        })
+    },
 
     // listen to event of closing add dialog
     addDialogClosed() {
@@ -347,6 +440,20 @@ export default {
     async handleAddFormUploadSuccess(info) {
       this.addForm.url = info
     },
+
+    async handleAddFormUploadRemove(file, fileList) {
+      this.DeletImgFromMinio(this.addForm)
+      this.addForm.url = ''
+      this.uploadDisabled = false
+    },
+
+    async handleAddFormUploadChange(file, fileList) {
+      if (fileList.length >= 1) {
+        this.uploadDisabled = true
+      }
+    },
+
+    // ========= Edit Dialog ==========
     // handle when click modify btn
     async showEditDialog(book_info) {
       this.editDialogVisible = true
@@ -374,6 +481,7 @@ export default {
       this.editForm.book_category = this.selectedNewBookCateId
       this.$refs.editFormRef.validate(async (valid) => {
         if (!valid) return
+
         const res = await this.$http.put('/book/update', this.editForm)
         if (res.status !== 200)
           return this.$message.error('Fail to modify the book')
@@ -385,19 +493,17 @@ export default {
       })
     },
     // remove exist image from selected book
-    async handleUploadRemove(file, fileList) {
+    async handleEditFormUploadRemove(file, fileList) {
       console.log('are you sure you want to delte this file')
-      const fileName = file.url.split('/').pop()
-      const res = await this.$http.delete('/up/deleteFile/' + fileName)
-      if (res.status !== 200)
-        return this.$message.error('Fail to delete the file')
+      this.DeletImgFromMinio(this.editForm)
+      this.editForm.url = ''
       this.uploadDisabled = false
     },
     // change editForm url to the new pic
     handleEditFormUploadSuccess(info) {
       this.editForm.url = info
     },
-    handleUploadChange(file, fileList) {
+    handleEditFormUploadChange(file, fileList) {
       if (fileList.length >= 1) {
         this.uploadDisabled = true
       }
@@ -405,8 +511,16 @@ export default {
 
     // ===========  SET CONTENT ==================
     setContent(info) {
-      console.log(info)
-      this.$router.push({path: '/goodContent', query: {id: info.book_id, name:info.book_name}})
+      this.$router.push({
+        path: '/goodContent',
+        query: { id: info.book_id, name: info.book_name },
+      })
+    },
+    setCharacter(info) {
+      this.$router.push({
+        path: '/character',
+        query: { id: info.book_id, name: info.book_name },
+      })
     },
   },
 }
